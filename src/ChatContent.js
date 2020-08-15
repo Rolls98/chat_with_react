@@ -1,7 +1,8 @@
 import React from "react";
 import ContactProfile from "./ContactProfile";
 import Messages from "./Messages";
-export default function Content({ user, chats }) {
+import InputMsg from "./InputMsg"
+export default function Content({ user, chats,sendMsg,changeFile}) {
   const userChat =
     user !== false
       ? chats.filter((c) => c.initiator === user._id || c.peer === user._id)
@@ -10,16 +11,8 @@ export default function Content({ user, chats }) {
   return (
     <div className="content">
       <ContactProfile username={user !== false ? user.username : ""} />
-      <Messages chats={userChat} _id={user._id} />
-      <div className="message-input">
-        <div className="wrap">
-          <input type="text" id="textSend" placeholder="Tapez un message..." />
-          <i className="fa fa-paperclip attachment" aria-hidden="true" />
-          <button className="submit">
-            <i className="fa fa-paper-plane" aria-hidden="true" />
-          </button>
-        </div>
+      <Messages chats={userChat} _id={user._id} change={changeFile} />
+      {user._id !== undefined && <InputMsg sendMsg={sendMsg} change={changeFile}/>}
       </div>
-    </div>
   );
 }

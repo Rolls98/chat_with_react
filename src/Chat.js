@@ -7,8 +7,12 @@ import "./css/reset.min.css";
 import "./fonts/font-awesome-4.7.0/css/font-awesome.min.css";
 import "./css/styles.css";
 import ChatContent from "./ChatContent";
+import {
+  RecoilRoot
+} from 'recoil';
 
 class Chat extends React.Component {
+  
   constructor(props) {
     super(props);
     this.state = {
@@ -20,6 +24,7 @@ class Chat extends React.Component {
         { username: "Fabrice", id: "3", online: true },
       ],
       chatWith: false,
+      file:{}
     };
   }
 
@@ -48,13 +53,51 @@ class Chat extends React.Component {
     });
   }
 
+  handleChangeFile = (file)=>{
+    this.setState({file})
+  }
+
+  handleSend = (content)=>{
+    let chats = this.state.chats.slice();
+    let fileInfo = {existFile:false,filePath:"",fileName:""};
+    let chatUser = this.chatFilterForUser(this.state.chatWith._id,chats)
+    if(this.state.file.fileInfo && this.state.file.fileInfo.name){
+      fileInfo = {existFile:true,filePath:this.state.file.path,fileName:this.state.file.fileInfo.name}
+    }
+    let data = {
+      send_by:this.props.me.id,
+      content,
+      date: new Date(),
+      see:false,
+      ...fileInfo
+    }
+    if(chatUser.length>0){  
+      chatUser.push(data)
+      
+      this.updateUser();
+    }else{
+      chats.push({
+        initiator:this.props.me.id,
+        peer:this.state.chatWith._id,
+        messages:[{...data}]
+      })
+    }
+    console.log("new chats ",chats)
+    this.setState({chats})
+  }
+
+  updateUser = ()=>{
+    let users = this.state.users;
+    users = users.sort(this.orderUserWithMsgTime)
+    this.setState({users});
+  }
   findIndexUser = (idUser) => {
     return this.state.chats.findIndex(filterChat(idUser));
   };
 
-  chatFilterForUser = (idUser) => {
+  chatFilterForUser = (idUser,chats=this.state.chats) => {
     if (this.findIndexUser(idUser) !== -1) {
-      let msg = this.state.chats.filter(filterChat(idUser));
+      let msg = chats.filter(filterChat(idUser));
 
       return msg[0].messages;
     }
@@ -89,6 +132,7 @@ class Chat extends React.Component {
         ? users.filter((u) => this.findIndexUser(u._id))
         : users.filter((u) => this.findIndexUser(u._id) === -1);
     return (
+      <RecoilRoot >
       <div id="frame">
         <div id="sidepanel">
           <Profile
@@ -112,8 +156,9 @@ class Chat extends React.Component {
             </button>
           </div>
         </div>
-        <ChatContent user={this.state.chatWith} chats={this.state.chats} />
+        <ChatContent user={this.state.chatWith} changeFile={this.handleChangeFile} chats={this.state.chats} sendMsg={this.handleSend}/>
       </div>
+      </RecoilRoot>
     );
   }
 }

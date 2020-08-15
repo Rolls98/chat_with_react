@@ -1,5 +1,5 @@
 import React from "react";
-import ButtonInput from "./ButtonInput";
+import ButtonInput from "./FormInput";
 import Avatar from "./images/avatar-01.jpg";
 
 
