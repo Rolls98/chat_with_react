@@ -11,12 +11,9 @@ export default function Messages({ chats, _id,change }) {
   let show = true;
   
   const scrollToBottom = () => {
-    setTimeout(()=>{messagesEndRef.current.scrollIntoView({ behavior: "smooth" })},100);
+    messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
   };
-  useEffect(()=>{
-    divRef.current.scrollTo(0,divRef.current.scrollHeight-500)
-    
-  },[change])
+  
   useEffect(scrollToBottom, [chats]);
   
   return (
@@ -44,7 +41,7 @@ export default function Messages({ chats, _id,change }) {
             )
         })}
       </ul>
-      <Preview change={change}/>
+      <Preview change={change} />
       <div ref={messagesEndRef}/>
     </div>
   );

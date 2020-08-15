@@ -12,7 +12,7 @@ export default function Contact(props){
       <img src={require("./images/mikeross.png")} alt="userPhoto" />
       <div className="meta">
         <p className="name">{user.username}</p>
-        <p className="preview">{lastMsg.sendBy !== user._id ? "me: ":""}{lastMsg.existFile === true && <i className="fa fa-paperclip attachment" aria-hidden="true"></i>}{lastMsg.content !== "" ?lastMsg.content:lastMsg.fileName}</p>
+        <p className="preview">{user.write && "écrit..."}{!user.write&&lastMsg.sendBy !== user._id ? "me: ":""}{!user.write&&lastMsg.existFile === true && <i className="fa fa-paperclip attachment" aria-hidden="true"></i>}{!user.write&&lastMsg.content !== "" ?lastMsg.content:!user.write&&lastMsg.fileName?lastMsg.fileName:""}</p>
       </div>
     </div>
   </li>)

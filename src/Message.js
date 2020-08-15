@@ -6,7 +6,7 @@ export default function Message(props) {
     width: "25px",
     height: "25px",
     display: "inline",
-    "border-radius": "inherit",
+    "borderRadius": "inherit",
   };
 
   const formatFichier = (f, id, n = "") => {
@@ -70,13 +70,13 @@ export default function Message(props) {
 function format_time(date) {
   if (moment(date).isValid()) {
     return `${
-      moment(date).hour() < 9 ? "0" + moment(date).hour() : moment(date).hour()
+      moment(date).hour() <= 9 ? "0" + moment(date).hour() : moment(date).hour()
       }:${
-      moment(date).minute() < 9
+      moment(date).minute() <= 9
         ? "0" + moment(date).minute()
         : moment(date).minute()
       }:${
-        moment(date).seconds() < 9
+        moment(date).seconds() <= 9
           ? "0" + moment(date).seconds()
           : moment(date).seconds()
         }`;

@@ -7,34 +7,70 @@ import "./css/reset.min.css";
 import "./fonts/font-awesome-4.7.0/css/font-awesome.min.css";
 import "./css/styles.css";
 import ChatContent from "./ChatContent";
-import {
-  RecoilRoot
-} from 'recoil';
+import { RecoilRoot } from "recoil";
 
 class Chat extends React.Component {
-  
   constructor(props) {
     super(props);
+    this.ws = new WebSocket(`ws://localhost:5000/`);
     this.state = {
+      ws: new WebSocket(`ws://localhost:5000/`),
       chatUser: true,
       chats: [],
-      users: [
-        { username: "Rolls", id: "1", online: true },
-        { username: "Roys", id: "2", online: false },
-        { username: "Fabrice", id: "3", online: true },
-      ],
+      usersOn: [],
+      users: [],
       chatWith: false,
-      file:{}
+      file: {},
+      write: false,
     };
   }
 
   componentDidMount() {
-    console.log("Chat mounted");
+    this.state.ws.addEventListener("open", () => {
+      console.log("socket connecté");
+    });
+
+    this.state.ws.addEventListener("message", ({ data }) => {
+      let info = JSON.parse(data);
+      let users = this.state.users.slice();
+      console.log(info);
+      switch (info.type) {
+        case "users":
+          if (Array.isArray(info.users)) {
+            this.setState({ usersOn: info.users });
+          } else if (info.users) {
+            let users = this.state.usersOn.slice();
+            users.push(info.users);
+            this.setState({ usersOn: users });
+          }
+
+          for (let user of users) {
+            user.online = this.state.usersOn.includes(user._id) ? true : false;
+          }
+          this.setState({ users });
+
+          break;
+        case "typing":
+          {
+            let user = users.filter((u) => u._id === info.writer);
+            user[0].write = true;
+            this.setState({ users });
+          }
+          break;
+        case "notyping":
+          {
+            let user = users.filter((u) => u._id === info.writer);
+            delete user[0].write; 
+            this.setState({ users });
+          }
+          break;
+        default:
+      }
+    });
+
     Axios("http://localhost:5000/api/users", { method: "GET" }).then((r) => {
-      console.log("users ", r);
       if (r.status === 200) {
         let users = r.data.filter((u) => u._id !== this.props.me.id);
-
         Axios("http://localhost:5000/api/allChats", { method: "GET" }).then(
           (r) => {
             if (r.status === 200) {
@@ -46,6 +82,9 @@ class Chat extends React.Component {
               this.setState({ chats });
               users = users.sort(this.orderUserWithMsgTime);
               this.setState({ users });
+              this.state.ws.send(
+                JSON.stringify({ type: "connect", ...this.props.me })
+              );
             }
           }
         );
@@ -53,49 +92,72 @@ class Chat extends React.Component {
     });
   }
 
-  handleChangeFile = (file)=>{
-    this.setState({file})
-  }
-
-  handleSend = (content)=>{
+  handleChangeFile = (file) => {
+    this.setState({ file });
+  };
+  handleWriter = (v) => {
+    if (!this.state.write) {
+      this.state.ws.send(
+        JSON.stringify({
+          type: "typing",
+          data: { recv_id: this.state.chatWith._id, send_id: this.props.me.id },
+        })
+      );
+      console.log("typing...");
+    } else {
+      this.state.ws.send(
+        JSON.stringify({
+          type: "notyping",
+          data: { recv_id: this.state.chatWith._id, send_id: this.props.me.id },
+        })
+      );
+      console.log("no typing...");
+    }
+    this.setState({ write: v });
+  };
+  handleSend = (content) => {
     let chats = this.state.chats.slice();
-    let fileInfo = {existFile:false,filePath:"",fileName:""};
-    let chatUser = this.chatFilterForUser(this.state.chatWith._id,chats)
-    if(this.state.file.fileInfo && this.state.file.fileInfo.name){
-      fileInfo = {existFile:true,filePath:this.state.file.path,fileName:this.state.file.fileInfo.name}
+    let fileInfo = { existFile: false, filePath: "", fileName: "" };
+    let chatUser = this.chatFilterForUser(this.state.chatWith._id, chats);
+    if (this.state.file.fileInfo && this.state.file.fileInfo.name) {
+      fileInfo = {
+        existFile: true,
+        filePath: this.state.file.path,
+        fileName: this.state.file.fileInfo.name,
+      };
     }
     let data = {
-      send_by:this.props.me.id,
+      send_by: this.props.me.id,
       content,
       date: new Date(),
-      see:false,
-      ...fileInfo
-    }
-    if(chatUser.length>0){  
-      chatUser.push(data)
-      
-      this.updateUser();
-    }else{
-      chats.push({
-        initiator:this.props.me.id,
-        peer:this.state.chatWith._id,
-        messages:[{...data}]
-      })
-    }
-    console.log("new chats ",chats)
-    this.setState({chats})
-  }
+      see: false,
+      ...fileInfo,
+    };
+    if (chatUser.length > 0) {
+      chatUser.push(data);
 
-  updateUser = ()=>{
+      this.updateUser();
+    } else {
+      chats.push({
+        initiator: this.props.me.id,
+        peer: this.state.chatWith._id,
+        messages: [{ ...data }],
+      });
+    }
+    console.log("new chats ", chats);
+    this.setState({ chats });
+  };
+
+  updateUser = () => {
     let users = this.state.users;
-    users = users.sort(this.orderUserWithMsgTime)
-    this.setState({users});
-  }
+    users = users.sort(this.orderUserWithMsgTime);
+    this.setState({ users });
+  };
   findIndexUser = (idUser) => {
     return this.state.chats.findIndex(filterChat(idUser));
   };
 
-  chatFilterForUser = (idUser,chats=this.state.chats) => {
+  chatFilterForUser = (idUser, chats = this.state.chats) => {
     if (this.findIndexUser(idUser) !== -1) {
       let msg = chats.filter(filterChat(idUser));
 
@@ -132,32 +194,39 @@ class Chat extends React.Component {
         ? users.filter((u) => this.findIndexUser(u._id))
         : users.filter((u) => this.findIndexUser(u._id) === -1);
     return (
-      <RecoilRoot >
-      <div id="frame">
-        <div id="sidepanel">
-          <Profile
-            avatar={require("./images/mikeross.png")}
-            username={this.props.me.username}
-          />
-          <Search />
-          <Contacts
-            users={user_s}
-            chats={this.state.chats}
-            runChat={this.handleChatWith}
-          />
-          <div id="bottom-bar">
-            <button id="addcontact">
-              <i className="fa fa-user-plus fa-fw" aria-hidden="true"></i>{" "}
-              <span>Ajouter un contact</span>
-            </button>
-            <button id="settings">
-              <i className="fa fa-cog fa-fw" aria-hidden="true"></i>
-              <span>Paramètres</span>
-            </button>
+      <RecoilRoot>
+        <div id="frame">
+          <div id="sidepanel">
+            <Profile
+              avatar={require("./images/mikeross.png")}
+              username={this.props.me.username}
+            />
+            <Search />
+            <Contacts
+              users={user_s}
+              chats={this.state.chats}
+              runChat={this.handleChatWith}
+            />
+            <div id="bottom-bar">
+              <button id="addcontact">
+                <i className="fa fa-user-plus fa-fw" aria-hidden="true" />{" "}
+                <span>Ajouter un contact</span>
+              </button>
+              <button id="settings">
+                <i className="fa fa-cog fa-fw" aria-hidden="true" />
+                <span>Paramètres</span>
+              </button>
+            </div>
           </div>
+          <ChatContent
+            user={this.state.chatWith}
+            write={this.state.write}
+            setWrite={this.handleWriter}
+            changeFile={this.handleChangeFile}
+            chats={this.state.chats}
+            sendMsg={this.handleSend}
+          />
         </div>
-        <ChatContent user={this.state.chatWith} changeFile={this.handleChangeFile} chats={this.state.chats} sendMsg={this.handleSend}/>
-      </div>
       </RecoilRoot>
     );
   }

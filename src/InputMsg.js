@@ -5,6 +5,7 @@ import fileRecoil from "./fileRecoil"
 
 export default function InputMsg(props) {
   const [input, setInput] = useState("");
+  let time = useRef(null);
   const [fileContent,setFile] = useRecoilState(fileRecoil);
   const inputRef = useRef(null);
   let file = useRef(null);
@@ -34,6 +35,18 @@ export default function InputMsg(props) {
       file.current.addEventListener("change",handleFileChange)
   },[handleFileChange,file])
 
+  const handleKeyUp = useCallback(()=>{
+      clearInterval(time.current);
+      time.current = setTimeout(() => {
+        props.setWrite(false)
+        console.log("no write...");
+      }, 1000);
+  },[time,props])
+
+  useEffect(()=>{
+    inputRef.current.addEventListener("keyup",handleKeyUp)
+  },[handleKeyUp, inputRef, props.write])
+
   const handleSend = useCallback((e) => {
       e.preventDefault()
     if (input.trim()||fileContent.upload) {
@@ -48,11 +61,15 @@ export default function InputMsg(props) {
   const handleKeyDown = useCallback(
     (event) => {
       const { keyCode } = event;
+      if(!props.write){
+        props.setWrite(true)
+        console.log("write...")
+      }
       if (keyCode === 13) {
         handleSend(event);
       }
     },
-    [handleSend]
+    [handleSend,props]
   );
 
   useEffect(() => {
