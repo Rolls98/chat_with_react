@@ -25,6 +25,14 @@ class Chat extends React.Component {
     };
   }
 
+  componentDidUpdate(prevProps,prevState){
+    if(prevState.chats !== this.state.chats){
+      this.updateUser();
+      this.handleSee(this.state.chatWith)
+    }
+    
+  }
+
   componentDidMount() {
     this.state.ws.addEventListener("open", () => {
       console.log("socket connecté");
@@ -33,6 +41,8 @@ class Chat extends React.Component {
     this.state.ws.addEventListener("message", ({ data }) => {
       let info = JSON.parse(data);
       let users = this.state.users.slice();
+      let chats = this.state.chats.slice();
+      
       console.log(info);
       switch (info.type) {
         case "users":
@@ -46,6 +56,9 @@ class Chat extends React.Component {
 
           for (let user of users) {
             user.online = this.state.usersOn.includes(user._id) ? true : false;
+            if(user.online === false){
+              if(user.write)delete user.write;
+            }
           }
           this.setState({ users });
 
@@ -60,10 +73,26 @@ class Chat extends React.Component {
         case "notyping":
           {
             let user = users.filter((u) => u._id === info.writer);
-            delete user[0].write; 
+            delete user[0].write;
             this.setState({ users });
           }
           break;
+        case "recv_message":
+         {
+          let chatUser = this.chatFilterForUser(info.msg.send_id,chats)
+          
+          chatUser.push(info.msg.message);
+          this.setState({ chats });}
+          break;
+          case "seeMsg":
+          let chatUser = this.chatFilterForUser(info.user,chats)
+          for(let m of chatUser){
+            if(!m.see){
+              m.see = m.send_by === this.props.me.id?true:m.see;
+            }
+          }
+          this.setState({chats});
+            break;
         default:
       }
     });
@@ -103,7 +132,7 @@ class Chat extends React.Component {
           data: { recv_id: this.state.chatWith._id, send_id: this.props.me.id },
         })
       );
-      console.log("typing...");
+      
     } else {
       this.state.ws.send(
         JSON.stringify({
@@ -111,19 +140,19 @@ class Chat extends React.Component {
           data: { recv_id: this.state.chatWith._id, send_id: this.props.me.id },
         })
       );
-      console.log("no typing...");
     }
     this.setState({ write: v });
   };
-  handleSend = (content) => {
+  handleSend = async (content) => {
     let chats = this.state.chats.slice();
     let fileInfo = { existFile: false, filePath: "", fileName: "" };
     let chatUser = this.chatFilterForUser(this.state.chatWith._id, chats);
     if (this.state.file.fileInfo && this.state.file.fileInfo.name) {
+      let file = await this.sendImage();
       fileInfo = {
         existFile: true,
-        filePath: this.state.file.path,
-        fileName: this.state.file.fileInfo.name,
+        filePath: file.path,
+        fileName: file.name,
       };
     }
     let data = {
@@ -135,8 +164,6 @@ class Chat extends React.Component {
     };
     if (chatUser.length > 0) {
       chatUser.push(data);
-
-      this.updateUser();
     } else {
       chats.push({
         initiator: this.props.me.id,
@@ -144,9 +171,48 @@ class Chat extends React.Component {
         messages: [{ ...data }],
       });
     }
-    console.log("new chats ", chats);
+    this.ws.send(
+      JSON.stringify({
+        type: "send_message",
+        data: {
+          send_id: this.props.me.id,
+          recv_id: this.state.chatWith._id,
+          message: { ...data },
+        },
+      })
+    );
     this.setState({ chats });
   };
+
+  sendImage = ()=>{
+    return new Promise((next, reject) => {
+      Axios("http://localhost:5000/api/uploadImage",{headers:{contentType: false,
+        cache: false,
+        processData: false,},data:new FormData(this.state.file.form.current),method:"post"}).then(({data})=>{
+          
+          data.file.path = data.file.path.replace("public", "")
+          next(data.file);
+        }).catch((err) => {
+          reject(err);
+        })
+        /*
+      $.ajax({
+        method: "post",
+        url: "/api/uploadImage",
+        data: new FormData($("#form")[0]),
+        contentType: false,
+        cache: false,
+        processData: false,
+        success: ({ file }) => {
+          file.path = file.path.replace("public", "")
+          next(file);
+        },
+        error: (err) => {
+          reject(err);
+        }
+      })*/
+    })
+  }
 
   updateUser = () => {
     let users = this.state.users;
@@ -183,9 +249,22 @@ class Chat extends React.Component {
     return 0;
   };
 
+  handleSee = (user)=>{
+    let chats = this.state.chats.slice();
+    let chatsForUser = this.chatFilterForUser(user._id,chats).filter(m=>m.see === false && m.send_by === user._id)
+    
+    if(chatsForUser.length>0){
+      for(let m of chatsForUser){
+        m.see = true;
+      }
+      this.setState({chats})
+      this.ws.send(JSON.stringify({type:"seeMsg",data:{send_id:this.props.me.id,recv_id:user._id}}))
+    }
+  }
+
   handleChatWith = (user) => {
-    console.log("chat for ", user);
     this.setState({ chatWith: user });
+    this.handleSee(user)
   };
   render() {
     const { chatUser, users } = this.state;
@@ -235,5 +314,7 @@ class Chat extends React.Component {
 function filterChat(idUser) {
   return (c) => c.peer === idUser || c.initiator === idUser;
 }
+
+
 
 export default Chat;
