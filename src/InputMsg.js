@@ -9,6 +9,7 @@ export default function InputMsg(props) {
   let time = useRef(null);
   const form = useRef(null);
   const numNoKeys = [3, 8, 9, 12, 13, 16, 17, 18, 19, 20];
+  let change = props.change;
   const [fileContent, setFile] = useRecoilState(fileRecoil);
   const inputRef = useRef(null);
   let file = useRef(null);
@@ -22,30 +23,34 @@ export default function InputMsg(props) {
 
   const handleFileChange = useCallback(
     (e) => {
-      console.log("fileContent ", fileContent);
-      let reader = new FileReader();
 
-      reader.addEventListener("load", () => {
-        console.log(reader.result);
-        setFile({
-          upload: true,
-          path: reader.result,
-          fileInfo: e.target.files[0],
-        });
-        props.change({
-          upload: true,
-          path: reader.result,
-          fileInfo: e.target.files[0],
-          form: form,
-        });
-      });
+      if (e.target.files[0]) {
+        let reader = new FileReader();
 
-      reader.readAsDataURL(e.target.files[0]);
+        reader.addEventListener("load", () => {
+
+          setFile({
+            upload: true,
+            path: reader.result,
+            fileInfo: e.target.files[0],
+          });
+          change({
+            upload: true,
+            path: reader.result,
+            fileInfo: e.target.files[0],
+            form: form,
+          });
+        });
+
+        reader.readAsDataURL(e.target.files[0]);
+      }
     },
-    [fileContent, setFile, props]
+    [change, setFile]
   );
 
   useEffect(() => {
+
+
     file.current.addEventListener("change", handleFileChange);
   }, [handleFileChange, file]);
 
@@ -55,7 +60,7 @@ export default function InputMsg(props) {
       time.current = setTimeout(() => {
         if (props.write) {
           props.setWrite(false);
-          console.log("no write...");
+
         }
       }, 500);
     },
@@ -86,7 +91,7 @@ export default function InputMsg(props) {
       const { keyCode } = event;
       if (!props.write && !numNoKeys.includes(keyCode)) {
         props.setWrite(true);
-        console.log("write...");
+
       }
       if (keyCode === 13) {
         handleSend(event);

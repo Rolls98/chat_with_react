@@ -2,6 +2,8 @@ import React, { Component } from "react";
 import Login from "./Login";
 import Index from "./Chat";
 import Axios from "axios";
+
+
 // import "./vendor/bootstrap/css/bootstrap.min.css";
 // import "./fonts/font-awesome-4.7.0/css/font-awesome.min.css";
 // import "./vendor/animate/animate.css";
@@ -20,7 +22,7 @@ class App extends Component {
         sign: { username: "", email: "", password: "", cfpassword: "" },
       },
       formError: { login: {}, sign: {} },
-      me:{}
+      me: {}
     };
   }
 
@@ -34,7 +36,7 @@ class App extends Component {
   handleLog = (e) => {
     e.preventDefault();
     let type = this.state.type === "login" ? "sign" : "login";
-    console.log("type here ",type);
+    console.log("type here ", type);
     this.setState({ type });
   };
 
@@ -45,7 +47,7 @@ class App extends Component {
     let forms = { ...this.state.formsInputs[type] };
     let errors = {};
 
-    
+
 
     for (let el in forms) {
       if (forms[el].trim() === "") {
@@ -61,29 +63,35 @@ class App extends Component {
     }
 
     this.setState({ formError: { [type]: errors } });
-    
-    if (ok ) {
+
+    if (ok) {
       // let t = type === "sign"?"login":"index"
       console.log(forms);
-      Axios("http://localhost:5000/connexion",{method:"POST",data:{...forms}})
-        .then(r=>{
+
+      Axios("http://localhost:5000/connexion", { method: "POST", data: { ...forms } })
+        .then(r => {
           console.log(r)
-          if(r.status === 200){
+          if (r.status === 200) {
             let data = r.data;
             console.log(data[type]);
-            if(!data.success){
-              for(let el in data[type]){
+            if (!data.success) {
+              for (let el in data[type]) {
                 errors[el] = data[type][el];
               }
               this.setState({ formError: { [type]: errors } });
-            }else if(data.success === true){
-              this.setState({me:data.user,type:"index"});
+            } else if (data.success === true) {
+              this.setState({ me: data.user, type: "index" });
             }
           }
 
+        }).catch((e) => {
+          if (e.message === "Network Error") {
+            console.log("Erreur: probleme de reseau\nconsigne:Veuillez verifier si le serveur est connecté")
+          }
         })
-      
     }
+
+
   };
 
   render() {
@@ -91,18 +99,18 @@ class App extends Component {
     return (
       <>
         {type === "index" ? (
-          <Index me={this.state.me}/>
+          <Index me={this.state.me} />
         ) : (
-          <div className="limiter">
-            <Login
-              Change={this.handleChange}
-              errors={formError[type]}
-              Click={this.handleClick}
-              log={this.handleLog}
-              type={type}
-            />
-          </div>
-        )}
+            <div className="limiter">
+              <Login
+                Change={this.handleChange}
+                errors={formError[type]}
+                Click={this.handleClick}
+                log={this.handleLog}
+                type={type}
+              />
+            </div>
+          )}
       </>
     );
   }
