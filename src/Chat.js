@@ -8,8 +8,11 @@ import "./fonts/font-awesome-4.7.0/css/font-awesome.min.css";
 import "./css/styles.css";
 import ChatContent from "./ChatContent";
 import { RecoilRoot } from "recoil";
+import { Redirect } from "react-router-dom"
 
 class Chat extends React.Component {
+  _isMounted = false;
+
   constructor(props) {
     super(props);
 
@@ -37,6 +40,8 @@ class Chat extends React.Component {
   }
 
   componentDidMount() {
+    console.log("user ", this.props.me);
+    this._isMounted = false;
     this.ws.addEventListener("open", () => {
       console.log("socket connecté");
     });
@@ -134,6 +139,12 @@ class Chat extends React.Component {
         );
       }
     });
+  }
+
+  componentWillUnmount() {
+    this._isMounted = false;
+    console.log("willUnmount ")
+    //this.ws.close();
   }
 
   handleChangeFile = (file) => {
@@ -292,7 +303,7 @@ class Chat extends React.Component {
   }
 
   handleChatWith = (user) => {
-    this.setState({ chatWith: user });
+    this.setState((r) => { return { ...r, chatWith: user } });
     this.handleSee(user)
     console.log("this file ", this.state.file.upload)
     if (this.state.file.upload) {
@@ -307,41 +318,43 @@ class Chat extends React.Component {
         ? users.filter((u) => this.findIndexUser(u._id, chats) > -1)
         : users.filter((u) => this.findIndexUser(u._id, chats) === -1);
     return (
-      <RecoilRoot>
-        <div id="frame">
-          <div id="sidepanel">
-            <Profile
-              avatar={require("./images/mikeross.png")}
-              username={this.props.me.username}
-            />
-            <Search addUser={this.handleAddUser} />
-            <Contacts
-              users={user_s}
-              chats={this.state.chats}
-              runChat={this.handleChatWith}
-            />
-            <div id="bottom-bar">
-              <button id="addcontact" onClick={this.handleAddUser}>
-                <i className="fa fa-user-plus fa-fw" aria-hidden="true" />{" "}
-                <span>Ajouter un contact</span>
-              </button>
-              <button id="settings">
-                <i className="fa fa-cog fa-fw" aria-hidden="true" />
-                <span>Paramètres</span>
-              </button>
+      <>
+        {!this.props.me.username ? <Redirect to="/login" ></Redirect> : <RecoilRoot>
+          <div id="frame">
+            <div id="sidepanel">
+              <Profile
+                avatar={require("./images/mikeross.png")}
+                username={this.props.me.username}
+              />
+              <Search addUser={this.handleAddUser} />
+              <Contacts
+                users={user_s}
+                chats={this.state.chats}
+                runChat={this.handleChatWith}
+              />
+              <div id="bottom-bar">
+                <button id="addcontact" onClick={this.handleAddUser}>
+                  <i className="fa fa-user-plus fa-fw" aria-hidden="true" />{" "}
+                  <span>Ajouter un contact</span>
+                </button>
+                <button id="settings">
+                  <i className="fa fa-cog fa-fw" aria-hidden="true" />
+                  <span>Paramètres</span>
+                </button>
+              </div>
             </div>
+            <ChatContent
+              user={this.state.chatWith}
+              write={this.state.write}
+              setWrite={this.handleWriter}
+              changeFile={this.handleChangeFile}
+              chats={chats}
+              sendMsg={this.handleSend}
+              file={this.state.file}
+            />
           </div>
-          <ChatContent
-            user={this.state.chatWith}
-            write={this.state.write}
-            setWrite={this.handleWriter}
-            changeFile={this.handleChangeFile}
-            chats={chats}
-            sendMsg={this.handleSend}
-            file={this.state.file}
-          />
-        </div>
-      </RecoilRoot>
+        </RecoilRoot>}
+      </>
     );
   }
 }

@@ -1,6 +1,7 @@
 import React from "react";
 import ButtonInput from "./FormInput";
 import Avatar from "./images/avatar-01.jpg";
+import { Link } from "react-router-dom"
 
 
 function Login(props) {
@@ -53,10 +54,12 @@ function Login(props) {
             </a>
           </div>
           <div className="text-center w-full">
-            <a className="txt1" href="/" onClick={props.log}>
-              {props.type === "login"?"Créer un compte":"Connectez-vous"}
+            <Link className="txt1" to={"/" + (props.type === "login" ? "sign" : "login")}>
+
+              {props.type === "login" ? "Créer un compte" : "Connectez-vous"}
               <i className="fa fa-long-arrow-right"></i>
-            </a>
+
+            </Link>
           </div>
         </form>
       </div>

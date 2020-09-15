@@ -2,6 +2,7 @@ import React from 'react'
 
 export default function Contact(props) {
   const user = props.user;
+  console.log("user ", user);
   const lastMsg = props.lastMsg;
   //const content = lastMsg.existFile && lastMsg.content ? ' ' + lastMsg.content : (lastMsg.existFile ? '<i class="fa fa-paperclip attachment" aria-hidden="true"></i> ' : lastMsg.content);
   return (

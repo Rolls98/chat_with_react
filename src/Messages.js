@@ -37,9 +37,10 @@ export default function Messages({ chats, _id, change, file, updateChat }) {
 
   return (
     <>
-      <ScrollBar>
-        <div className="messages" ref={divRef} onScroll={handleScroll} >
-          <ul ref={messagesEndRef}>
+
+      <div className="messages" ref={divRef} onScroll={handleScroll} >
+        <ul ref={messagesEndRef}>
+          <ScrollBar>
             {chats.length > 0 &&
               chats[0].messages.map((m, index) => {
                 if (date !== formatDate(m.date)) {
@@ -61,10 +62,11 @@ export default function Messages({ chats, _id, change, file, updateChat }) {
                   </React.Fragment>
                 )
               })}
-          </ul>
-          <Preview change={change} file={file} />
-        </div>
-      </ScrollBar>
+          </ScrollBar>
+        </ul>
+        <Preview change={change} file={file} />
+      </div>
+
     </>
   );
 }

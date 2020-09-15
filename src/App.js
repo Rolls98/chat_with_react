@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import { Switch, BrowserRouter as Router, Route, Redirect } from "react-router-dom";
 import Login from "./Login";
 import Index from "./Chat";
 import Axios from "axios";
@@ -16,7 +17,6 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      type: "login",
       formsInputs: {
         login: { login: "", login_mdp: "" },
         sign: { username: "", email: "", password: "", cfpassword: "" },
@@ -95,23 +95,34 @@ class App extends Component {
   };
 
   render() {
-    const { formError, type } = this.state;
+    const { formError } = this.state;
     return (
-      <>
-        {type === "index" ? (
-          <Index me={this.state.me} />
-        ) : (
-            <div className="limiter">
-              <Login
-                Change={this.handleChange}
-                errors={formError[type]}
-                Click={this.handleClick}
-                log={this.handleLog}
-                type={type}
-              />
-            </div>
-          )}
-      </>
+      <Router>
+
+        <Switch>
+          <Route path={"/sign"}>
+            <Login
+              Change={this.handleChange}
+              errors={formError["sign"]}
+              Click={this.handleClick}
+              log={this.handleLog}
+              type={"sign"}
+            />
+          </Route>
+          <Route path={"/login"}>
+            {this.state.me.username ? <Redirect to="/index"></Redirect> : <Login
+              Change={this.handleChange}
+              errors={formError["login"]}
+              Click={this.handleClick}
+              log={this.handleLog}
+              type={"login"}
+            />}
+          </Route>
+          <Route path="/index">
+            <Index me={this.state.me} />
+          </Route>
+        </Switch>
+      </Router>
     );
   }
 }
